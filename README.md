@@ -1,4 +1,4 @@
-# 🚀 Sales Agent Demo
+# 🚀 Sales Agent
 
 A premium, AI-driven sales strategy generator built with **Next.js 15** and **Tailwind CSS 4**. This application empowers sales teams and business owners to generate comprehensive, data-driven sales strategies in seconds.
 
