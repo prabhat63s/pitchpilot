@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import MarkdownViewer from "./MarkdownViewer";
-import { Loader, Sparkles, User, Bot, ChevronRight, Zap, Globe, History, Clock, Copy, Check, PlusCircle, FileDown } from "lucide-react";
+import Link from "next/link";
+import { Loader, Copy, Check, Plus, ArrowUp, FileDown } from "lucide-react";
 import { jsPDF } from "jspdf";
 
 interface HistoryItem {
@@ -23,6 +24,7 @@ export default function SalesForm() {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [copied, setCopied] = useState(false);
     const [exporting, setExporting] = useState(false);
+    const [prompt, setPrompt] = useState<{ industry: string; client: string; region: string } | null>(null);
     const industryRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -52,9 +54,7 @@ export default function SalesForm() {
     };
 
     const loadHistoryItem = (item: HistoryItem) => {
-        setIndustry(item.industry);
-        setClient(item.client);
-        setRegion(item.region);
+        setPrompt({ industry: item.industry, client: item.client, region: item.region });
         setStrategy(item.strategy);
     };
 
@@ -77,6 +77,7 @@ export default function SalesForm() {
 
     const handleNewAnalysis = () => {
         setStrategy(null);
+        setPrompt(null);
         setIndustry("");
         setClient("");
         setRegion("");
@@ -250,6 +251,7 @@ export default function SalesForm() {
 
         setLoading(true);
         setStrategy(null);
+        setPrompt({ industry, client, region });
 
         try {
             const res = await fetch("/api/sales", {
@@ -279,228 +281,137 @@ export default function SalesForm() {
         }
     };
 
+    const fieldCls =
+        "w-full bg-transparent px-3 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-none";
+    const iconBtn =
+        "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-900 transition-colors disabled:opacity-50";
+
     return (
-        <div className="flex flex-col lg:flex-row gap-6 w-full h-[90vh] max-h-[900px]">
-            {/* Input Form */}
-            <div className="w-full lg:w-[380px] shrink-0 flex flex-col gap-6 animate-fade-in-up">
-                <div className="flex-1 rounded-3xl border border-white/10 bg-gray-900/60 p-6 backdrop-blur-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
-                    <div className="mb-6 flex items-center gap-4 shrink-0">
-                        <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500/20 to-purple-500/20 border border-white/5 shadow-inner">
-                            <Sparkles className="h-6 w-6 text-blue-400" />
-                            <div className="absolute inset-0 rounded-2xl bg-blue-500/20 blur-xl opacity-50" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight">Strategy Parameters</h2>
-                            <p className="text-sm text-gray-400 font-medium">Define your target for analysis</p>
-                        </div>
-                    </div>
+        <div className="flex h-screen bg-white text-stone-900">
+            {/* Sidebar */}
+            <aside className="hidden md:flex w-65 shrink-0 flex-col bg-stone-50 border-r border-stone-200 p-3">
+                <Link href="/" className="px-3 py-2 font-serif text-lg font-semibold">PitchPilot</Link>
+                <button
+                    onClick={handleNewAnalysis}
+                    className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-stone-200/60 transition-colors"
+                >
+                    <Plus className="h-4 w-4" /> New strategy
+                </button>
 
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-2 shrink-0">
-                        <div className="space-y-2">
-                            <div className="group space-y-2">
-                                <label htmlFor="industry" className="flex items-center gap-2 text-sm font-semibold text-gray-300 group-focus-within:text-blue-400 transition-colors">
-                                    <Zap className="w-4 h-4" /> Industry
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        ref={industryRef}
-                                        id="industry"
-                                        type="text"
-                                        placeholder="e.g., SaaS, Healthcare, Fintech"
-                                        value={industry}
-                                        onChange={(e) => setIndustry(e.target.value)}
-                                        className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white placeholder-gray-500 transition-all focus:border-blue-500/50 focus:bg-black/40 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="group space-y-2">
-                                <label htmlFor="client" className="flex items-center gap-2 text-sm font-semibold text-gray-300 group-focus-within:text-purple-400 transition-colors">
-                                    <User className="w-4 h-4" /> Client Name
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        id="client"
-                                        type="text"
-                                        placeholder="e.g., Acme Corp"
-                                        value={client}
-                                        onChange={(e) => setClient(e.target.value)}
-                                        className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white placeholder-gray-500 transition-all focus:border-purple-500/50 focus:bg-black/40 focus:outline-none focus:ring-4 focus:ring-purple-500/10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="group space-y-2">
-                                <label htmlFor="region" className="flex items-center gap-2 text-sm font-semibold text-gray-300 group-focus-within:text-pink-400 transition-colors">
-                                    <Globe className="w-4 h-4" /> Target Region
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        id="region"
-                                        type="text"
-                                        placeholder="e.g., North America, EMEA"
-                                        value={region}
-                                        onChange={(e) => setRegion(e.target.value)}
-                                        className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white placeholder-gray-500 transition-all focus:border-pink-500/50 focus:bg-black/40 focus:outline-none focus:ring-4 focus:ring-pink-500/10"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-2">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="group relative w-full overflow-hidden rounded-xl bg-linear-to-r from-blue-600 via-purple-600 to-blue-600 bg-size-[200%_auto] p-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed animate-gradient-x"
-                            >
-                                <div className="relative flex items-center justify-center gap-2">
-                                    {loading ? (
-                                        <>
-                                            <Loader className="h-5 w-5 animate-spin" />
-                                            <span>Generating Strategy...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Generate Strategy</span>
-                                            <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                                        </>
-                                    )}
-                                </div>
-                            </button>
-                        </div>
-                    </form>
-
-                    {/* History Section */}
-                    <div className="mt-4 flex-1 flex flex-col min-h-0">
-                        <div className="flex items-center justify-between mb-3 px-1">
-                            <div className="flex items-center gap-2 text-gray-400">
-                                <History className="w-4 h-4" />
-                                <span className="text-xs font-semibold uppercase tracking-wider">Recent History</span>
-                            </div>
-                            {history.length > 0 && (
-                                <button
-                                    onClick={() => {
-                                        setHistory([]);
-                                        localStorage.removeItem("sales_history");
-                                    }}
-                                    className="text-[10px] text-red-400 hover:text-red-300 hover:underline transition-colors"
-                                >
-                                    Clear All
-                                </button>
-                            )}
-                        </div>
-
-                        {history.length > 0 ? (
-                            <div className="flex-1 overflow-y-auto pr-1 space-y-2 hide-scrollbar">
-                                {history.map((item) => (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => loadHistoryItem(item)}
-                                        className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all group"
-                                    >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-sm font-medium text-gray-200 truncate">{item.client}</span>
-                                            <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                                            <span className="truncate max-w-[80px]">{item.industry}</span>
-                                            <span className="w-1 h-1 rounded-full bg-gray-600"></span>
-                                            <span className="truncate">{item.region}</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-2 opacity-50">
-                                <History className="w-8 h-8 mb-1" />
-                                <span className="text-xs">No history yet</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Result Panel */}
-            <div className="flex-1 flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-gray-900/40 backdrop-blur-2xl shadow-2xl shadow-black/50 animate-fade-in-up [animation-delay:200ms]">
-                <div className="border-b border-white/5 bg-white/5 px-6 py-4 backdrop-blur-md">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
-                                <div className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-75"></div>
-                            </div>
-                            <span className="text-sm font-semibold text-gray-200 tracking-wide">AI Strategy Result</span>
-                        </div>
-                        {strategy && (
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleCopy}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-gray-300 transition-colors"
-                                >
-                                    {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                                    {copied ? "Copied" : "Copy"}
-                                </button>
-                                <button
-                                    onClick={handleNewAnalysis}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-xs font-medium text-blue-400 transition-colors"
-                                >
-                                    <PlusCircle className="w-3.5 h-3.5" />
-                                    New Analysis
-                                </button>
-                                <button
-                                    onClick={handleExportPDF}
-                                    disabled={exporting}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-xs font-medium text-purple-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {exporting ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
-                                    {exporting ? "Exporting..." : "Export PDF"}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto md:mx-8 m-4 hide-scrollbar">
-                    {!strategy && !loading ? (
-                        <div className="flex h-full flex-col items-center justify-center gap-6 text-center opacity-50">
-                            <div className="relative rounded-full bg-white/5 p-8 ring-1 ring-white/10">
-                                <Bot className="h-12 w-12 text-gray-400" />
-                                <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-2xl" />
-                            </div>
-                            <div className="max-w-md space-y-2">
-                                <h3 className="text-xl font-semibold text-white">Ready to Generate</h3>
-                                <p className="text-sm text-gray-400 leading-relaxed">
-                                    Fill out the form on the left to generate a comprehensive sales strategy tailored to your needs.
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-8 h-full">
-                            {loading ? (
-                                <div className="flex h-full flex-col items-center justify-center gap-4">
-                                    <div className="relative">
-                                        <div className="h-16 w-16 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin"></div>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <Sparkles className="h-6 w-6 text-blue-400 animate-pulse" />
-                                        </div>
-                                    </div>
-                                    <p className="text-gray-400 animate-pulse">Analyzing market data...</p>
-                                </div>
-                            ) : (
-                                <div className="animate-fade-in-up">
-                                    <MarkdownViewer markdown={strategy || ""} />
-                                </div>
-                            )}
-                        </div>
+                <div className="mt-6 flex items-center justify-between px-3 text-xs text-stone-500">
+                    <span>Recent</span>
+                    {history.length > 0 && (
+                        <button
+                            onClick={() => {
+                                setHistory([]);
+                                localStorage.removeItem("sales_history");
+                            }}
+                            className="hover:text-red-600 transition-colors"
+                        >
+                            Clear
+                        </button>
                     )}
                 </div>
-            </div>
+                <div className="mt-1 flex-1 overflow-y-auto hide-scrollbar">
+                    {history.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => loadHistoryItem(item)}
+                            className="w-full truncate rounded-lg px-3 py-2 text-left text-sm hover:bg-stone-200/60 transition-colors"
+                        >
+                            {item.client} · {item.industry}
+                        </button>
+                    ))}
+                </div>
+            </aside>
+
+            {/* Chat */}
+            <section className="flex min-w-0 flex-1 flex-col">
+                <div className="flex-1 overflow-y-auto">
+                    <div className="mx-auto w-full max-w-3xl px-4 py-8">
+                        {!prompt ? (
+                            <div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
+                                <h1 className="font-serif text-3xl md:text-4xl">What are we pitching today?</h1>
+                                <p className="mt-3 text-stone-500">
+                                    Enter an industry, client and region below to build a sales strategy.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-8">
+                                <div className="flex justify-end">
+                                    <div className="max-w-[80%] rounded-3xl bg-stone-100 px-5 py-3 text-[15px]">
+                                        Build a sales strategy for <b>{prompt.client}</b> in the{" "}
+                                        <b>{prompt.industry}</b> industry, targeting <b>{prompt.region}</b>.
+                                    </div>
+                                </div>
+
+                                {loading ? (
+                                    <div className="flex items-center gap-2 text-sm text-stone-500">
+                                        <Loader className="h-4 w-4 animate-spin" /> Analyzing market data...
+                                    </div>
+                                ) : (
+                                    strategy && (
+                                        <div>
+                                            <MarkdownViewer markdown={strategy} />
+                                            <div className="mt-2 flex gap-1">
+                                                <button onClick={handleCopy} className={iconBtn}>
+                                                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                                                    {copied ? "Copied" : "Copy"}
+                                                </button>
+                                                <button onClick={handleExportPDF} disabled={exporting} className={iconBtn}>
+                                                    {exporting ? <Loader className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                                                    {exporting ? "Exporting..." : "Export PDF"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Composer */}
+                <form onSubmit={handleSubmit} className="mx-auto w-full max-w-3xl px-4 pb-6">
+                    <div className="flex items-center gap-2 rounded-3xl border border-stone-300 bg-white py-2 pl-3 pr-2 shadow-sm focus-within:border-stone-400">
+                        <div className="grid flex-1 divide-stone-200 sm:grid-cols-3 sm:divide-x">
+                            <input
+                                ref={industryRef}
+                                aria-label="Industry"
+                                placeholder="Industry, e.g. SaaS"
+                                value={industry}
+                                onChange={(e) => setIndustry(e.target.value)}
+                                className={fieldCls}
+                                required
+                            />
+                            <input
+                                aria-label="Client name"
+                                placeholder="Client, e.g. Acme Corp"
+                                value={client}
+                                onChange={(e) => setClient(e.target.value)}
+                                className={fieldCls}
+                                required
+                            />
+                            <input
+                                aria-label="Target region"
+                                placeholder="Region, e.g. EMEA"
+                                value={region}
+                                onChange={(e) => setRegion(e.target.value)}
+                                className={fieldCls}
+                                required
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            aria-label="Generate strategy"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-white hover:bg-stone-700 transition-colors disabled:opacity-40"
+                        >
+                            <ArrowUp className="h-4 w-4" />
+                        </button>
+                    </div>
+                </form>
+            </section>
         </div>
     );
 }
